@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
 using Windows.Networking;
 using Windows.Networking.Sockets;
+using Windows.Storage;
 using Windows.Storage.Streams;
 using Windows.UI.Core;
 using Windows.UI.Popups;
@@ -104,9 +105,24 @@ namespace FileSharing
         {
             var length = await reader.LoadAsync(sizeof(uint));
             if (length != sizeof(uint)) return ResponceType.Close;
-            var actualContentLength = reader.ReadUInt32();
-            var contentLength = await reader.LoadAsync(actualContentLength);
-            if (actualContentLength != contentLength) return ResponceType.Close;
+            var state = reader.ReadUInt32();
+            if(state == ConnectionState.StateRecieving)
+            {
+                var fileInfoLength = await reader.LoadAsync(sizeof(uint));
+                if (fileInfoLength != sizeof(uint)) return ResponceType.Close;
+                var fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(fileInfoLength));
+                length = await reader.LoadAsync(sizeof(uint));
+                if (length != sizeof(uint)) return ResponceType.Close;
+                var actualContentLength = reader.ReadUInt32();
+                var contentLength = await reader.LoadAsync(actualContentLength);
+                if (actualContentLength != contentLength) return ResponceType.Close;
+
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    LogField.Text += $"File {fileInfo.FileName}.{fileInfo.FileType}\n";
+                });
+                
+            }
             return ResponceType.Accept;
 
         }

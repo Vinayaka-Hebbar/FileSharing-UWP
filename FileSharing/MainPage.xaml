@@ -18,15 +18,12 @@
                 FontSize="24"
                 FontWeight="Bold"
                 Text="FileTranfer" />
-            <StackPanel
-                Margin="5"
-                Orientation="Horizontal"
-                Spacing="5">
-                <Button Click="OnSendClick" Content="Send" />
-                <Button Content="Recieve" />
-            </StackPanel>
+            <Button Click="OnSendClick" Content="Send" />
             <TextBlock Text="User IP : " />
             <TextBlock x:Name="IPInfoField" />
         </StackPanel>
+        <ScrollViewer Grid.Row="1">
+            <TextBlock x:Name="LogField" />
+        </ScrollViewer>
     </Grid>
 </Page>

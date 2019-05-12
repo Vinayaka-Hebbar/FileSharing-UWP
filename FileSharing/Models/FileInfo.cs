@@ -11,5 +11,8 @@ namespace FileSharing.Models
         [DataMember]
         public ulong Size { get; set; }
 
+        [DataMember]
+        public string FileType { get; set; }
+
     }
 }

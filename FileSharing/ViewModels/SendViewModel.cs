@@ -59,7 +59,8 @@ namespace FileSharing.ViewModels
                     StorageFile file = await StorageFile.GetFileFromPathAsync(FilePath);
                     var info = await file.GetBasicPropertiesAsync();
                     var fileInfo = Json.Serialize(new FileInfo { FileName = file.DisplayName, Size = info.Size });
-                    writter.WriteUInt32(writter.MeasureString(fileInfo));
+                    var fileInfoLength = writter.MeasureString(fileInfo);
+                    writter.WriteUInt32(fileInfoLength);
                     writter.WriteString(fileInfo);
                     //Sending Request
                     await writter.StoreAsync();
@@ -75,6 +76,8 @@ namespace FileSharing.ViewModels
                             {
                                 IBuffer buffer = await FileIO.ReadBufferAsync(file);
                                 writter.WriteUInt32(ConnectionState.StateRecieving);
+                                writter.WriteUInt32(fileInfoLength);
+                                writter.WriteString(fileInfo);
                                 writter.WriteUInt32(buffer.Length);
                                 writter.WriteBuffer(buffer);
                                 await writter.StoreAsync();
