@@ -102,26 +102,19 @@ namespace FileSharing
 
         private async Task<ResponceType> RecieveFileAsync(DataReader reader)
         {
+            var fileInfoLength = await reader.LoadAsync(sizeof(uint));
+            if (fileInfoLength != sizeof(uint)) return ResponceType.Close;
+            var fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(fileInfoLength));
             var length = await reader.LoadAsync(sizeof(uint));
             if (length != sizeof(uint)) return ResponceType.Close;
-            var state = reader.ReadUInt32();
-            if (state == ConnectionState.StateRecieving)
+            var actualContentLength = reader.ReadUInt32();
+            var contentLength = await reader.LoadAsync(actualContentLength);
+            if (actualContentLength != contentLength) return ResponceType.Close;
+
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                var fileInfoLength = await reader.LoadAsync(sizeof(uint));
-                if (fileInfoLength != sizeof(uint)) return ResponceType.Close;
-                var fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(fileInfoLength));
-                length = await reader.LoadAsync(sizeof(uint));
-                if (length != sizeof(uint)) return ResponceType.Close;
-                var actualContentLength = reader.ReadUInt32();
-                var contentLength = await reader.LoadAsync(actualContentLength);
-                if (actualContentLength != contentLength) return ResponceType.Close;
-
-                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-                {
-                    LogField.Text += $"File {fileInfo.FileName}.{fileInfo.FileType}\n";
-                });
-
-            }
+                LogField.Text += $"File {fileInfo.FileName}.{fileInfo.FileType}\n";
+            });
             return ResponceType.Accept;
 
         }
