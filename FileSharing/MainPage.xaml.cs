@@ -52,8 +52,7 @@ namespace FileSharing
                     }
                     catch (Exception ex)
                     {
-                        var msg = SocketError.GetStatus(ex.HResult);
-                        Console.WriteLine();
+                        await new MessageDialog(ex.Message).ShowAsync();
                     }
                 }
             }
@@ -70,21 +69,26 @@ namespace FileSharing
                 uint state = reader.ReadUInt32();
                 if (state == ConnectionState.StateSending)
                 {
-                    DataWriter writer = new DataWriter(args.Socket.OutputStream);
-                    var res = await FileAcceptAync(reader);
-                    if (res == ResponceType.Accept)
-                    {
-                        writer.WriteUInt32(ConnectionState.StateRecieve);
-                    }
-                    else if (res == ResponceType.Deny)
-                    {
-                        writer.WriteUInt32(ConnectionState.StateDeny);
-                    }
-                    else
+
+                    var isClosed = await FileAcceptAync(reader, async (res) =>
+                     {
+                         DataWriter writer = new DataWriter(args.Socket.OutputStream);
+                         if (res == ResponceType.Accept)
+                         {
+                             writer.WriteUInt32(ConnectionState.StateRecieve);
+                         }
+                         else if (res == ResponceType.Deny)
+                         {
+                             writer.WriteUInt32(ConnectionState.StateDeny);
+                         }
+
+                         await writer.StoreAsync();
+                     });
+                    if (isClosed)
                     {
                         return;
                     }
-                    await writer.StoreAsync();
+
                 }
                 if (state == ConnectionState.StateRecieving)
                 {
@@ -107,22 +111,25 @@ namespace FileSharing
 
         }
 
-        private async Task<ResponceType> FileAcceptAync(IDataReader reader)
+        private async Task<bool> FileAcceptAync(IDataReader reader, Action<ResponceType> action)
         {
             var length = await reader.LoadAsync(sizeof(uint));
-            if (length != sizeof(uint)) return ResponceType.Close;
+            if (length != sizeof(uint)) return true;
             var actualContentLength = reader.ReadUInt32();
             var contentLength = await reader.LoadAsync(actualContentLength);
-            if (actualContentLength != contentLength) return ResponceType.Close;
+            if (actualContentLength != contentLength) return true;
             FileInfo fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(contentLength));
-            var dialog = new MessageDialog($"File {fileInfo.FileName}", "Do you want to recieve");
-            dialog.Commands.Add(new UICommand("Ok"));
-            dialog.Commands.Add(new UICommand("Cancel"));
-            dialog.DefaultCommandIndex = 0;
-            dialog.DefaultCommandIndex = 1;
-            var result = await dialog.ShowAsync();
-            return (int)result.Id == 0 ? ResponceType.Accept : ResponceType.Deny;
-
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+             {
+                 var dialog = new MessageDialog($"File {fileInfo.FileName}", "Do you want to recieve");
+                 dialog.Commands.Add(new UICommand("Ok"));
+                 dialog.Commands.Add(new UICommand("Cancel"));
+                 dialog.DefaultCommandIndex = 0;
+                 dialog.DefaultCommandIndex = 1;
+                 var result = await dialog.ShowAsync();
+                 action((int)result.Id == 0 ? ResponceType.Accept : ResponceType.Deny);
+             });
+            return false;
         }
 
         private void OnExit(object sender, object e)
