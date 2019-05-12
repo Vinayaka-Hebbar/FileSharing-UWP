@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
 using Windows.Networking;
 using Windows.Networking.Sockets;
-using Windows.Storage;
 using Windows.Storage.Streams;
 using Windows.UI.Core;
 using Windows.UI.Popups;
@@ -106,7 +105,7 @@ namespace FileSharing
             var length = await reader.LoadAsync(sizeof(uint));
             if (length != sizeof(uint)) return ResponceType.Close;
             var state = reader.ReadUInt32();
-            if(state == ConnectionState.StateRecieving)
+            if (state == ConnectionState.StateRecieving)
             {
                 var fileInfoLength = await reader.LoadAsync(sizeof(uint));
                 if (fileInfoLength != sizeof(uint)) return ResponceType.Close;
@@ -121,7 +120,7 @@ namespace FileSharing
                 {
                     LogField.Text += $"File {fileInfo.FileName}.{fileInfo.FileType}\n";
                 });
-                
+
             }
             return ResponceType.Accept;
 
@@ -138,12 +137,11 @@ namespace FileSharing
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
              {
                  var dialog = new MessageDialog($"File {fileInfo.FileName}", "Do you want to recieve");
-                 dialog.Commands.Add(new UICommand("Ok"));
-                 dialog.Commands.Add(new UICommand("Cancel"));
+                 dialog.Commands.Add(new UICommand("Ok", (c) => { action(ResponceType.Accept); }));
+                 dialog.Commands.Add(new UICommand("Cancel", (c) => { action(ResponceType.Deny); }));
                  dialog.DefaultCommandIndex = 0;
                  dialog.DefaultCommandIndex = 1;
-                 var result = await dialog.ShowAsync();
-                 action((int)result.Id == 0 ? ResponceType.Accept : ResponceType.Deny);
+                 await dialog.ShowAsync();
              });
             return false;
         }
