@@ -1,5 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:iot="http://schemas.microsoft.com/appx/manifest/iot/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" IgnorableNamespaces="uap mp iot uap3">
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:iot="http://schemas.microsoft.com/appx/manifest/iot/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" IgnorableNamespaces="uap mp iot uap3">
   <Identity Name="1f833732-522c-42e8-bd0e-c1b2a81d7c46" Publisher="CN=Elpis-PC" Version="1.0.0.0" />
   <mp:PhoneIdentity PhoneProductId="1f833732-522c-42e8-bd0e-c1b2a81d7c46" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
@@ -33,5 +35,6 @@
     <uap:Capability Name="documentsLibrary" />
     <uap3:Capability Name="remoteSystem" />
     <uap:Capability Name="userAccountInformation" />
+    <rescap:Capability Name="broadFileSystemAccess" />
   </Capabilities>
 </Package>

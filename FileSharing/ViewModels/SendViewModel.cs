@@ -1,7 +1,6 @@
 ﻿using FileSharing.Models;
 using FileSharing.Utils;
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Windows.ApplicationModel.Core;
@@ -68,7 +67,7 @@ namespace FileSharing.ViewModels
                             break;
                         case ContentType.Code:
                             var language = Enum.Parse<HighlightedLanguage>(_language.ToString());
-                            await SendContentAsync(socket.InputStream, socket.OutputStream, contentType);
+                            await SendContentAsync(socket.InputStream, socket.OutputStream, contentType, language);
                             break;
                         case ContentType.Text:
                             await SendContentAsync(socket.InputStream, socket.OutputStream, contentType);
@@ -172,6 +171,10 @@ namespace FileSharing.ViewModels
                             writter.WriteUInt32(buffer.Length);
                             writter.WriteBuffer(buffer);
                             await writter.StoreAsync();
+                            break;
+                        }
+                        else if (state == ConnectionState.StateDeny)
+                        {
                             break;
                         }
                     }

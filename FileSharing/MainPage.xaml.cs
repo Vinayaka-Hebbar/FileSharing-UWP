@@ -35,7 +35,6 @@ namespace FileSharing
 
         private async void LoadSettings()
         {
-
             if (!settings.Values.ContainsKey(SavePathKey))
             {
                 var downloadFolder = await DownloadsFolder.CreateFolderAsync("SharedFiles", CreationCollisionOption.GenerateUniqueName);
@@ -192,7 +191,8 @@ namespace FileSharing
         {
             try
             {
-                StorageFile file = await DownloadsFolder.CreateFileAsync($"{info.Name}{info.Extension}", CreationCollisionOption.GenerateUniqueName);
+                StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(settings.Values[SavePathKey].ToString());
+                StorageFile file = await folder.CreateFileAsync($"{info.Name}{info.Extension}", CreationCollisionOption.GenerateUniqueName);
                 using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
                 {
                     await stream.WriteAsync(buffer);
@@ -201,7 +201,10 @@ namespace FileSharing
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    LogField.Text += ex.Message + "\n";
+                });
             }
         }
 
