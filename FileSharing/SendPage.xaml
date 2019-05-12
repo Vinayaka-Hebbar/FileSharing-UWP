@@ -1,0 +1,35 @@
+﻿<Page
+    x:Class="FileSharing.SendPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:FileSharing"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    mc:Ignorable="d">
+
+    <Grid>
+        <StackPanel Margin="5" Spacing="5">
+            <TextBlock
+                FontSize="18"
+                FontWeight="SemiBold"
+                Text="Send Files" />
+            <TextBox PlaceholderText="Destination Ip" Text="{Binding IPAddress, Mode=TwoWay}" />
+            <RelativePanel>
+                <Button
+                    x:Name="SelectFileBtn"
+                    Command="{Binding SelectFile}"
+                    Content="Select File"
+                    RelativePanel.AlignRightWithPanel="True" />
+                <TextBox
+                    IsReadOnly="True"
+                    RelativePanel.AlignBottomWithPanel="True"
+                    RelativePanel.AlignLeftWithPanel="True"
+                    RelativePanel.AlignTopWithPanel="True"
+                    RelativePanel.LeftOf="SelectFileBtn"
+                    Text="{Binding FilePath, Mode=OneWay}" />
+            </RelativePanel>
+            <Button Command="{Binding Send}" Content="Send" />
+        </StackPanel>
+    </Grid>
+</Page>

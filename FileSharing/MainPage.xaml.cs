@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using FileSharing.Models;
+using System;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+using System.Threading.Tasks;
+using Windows.ApplicationModel.Core;
+using Windows.Networking;
+using Windows.Networking.Sockets;
+using Windows.Storage.Streams;
+using Windows.UI.Core;
+using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -24,7 +23,130 @@ namespace FileSharing
     {
         public MainPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
+
+        }
+
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            if (e.NavigationMode == NavigationMode.New)
+            {
+                SystemNavigationManager.GetForCurrentView().BackRequested += OnBackPressed;
+                CoreApplication.Exiting += OnExit;
+                HostName hostName;
+                if (!CoreApplication.Properties.ContainsKey("listener"))
+                {
+                    try
+                    {
+                        StreamSocketListener listener = new StreamSocketListener();
+                        listener.Control.KeepAlive = false;
+                        listener.ConnectionReceived += OnRecieved;
+                        var networkId = Windows.Networking.Connectivity.NetworkInformation.GetInternetConnectionProfile().NetworkAdapter.NetworkAdapterId;
+
+                        hostName = Windows.Networking.Connectivity.NetworkInformation.GetHostNames()
+                             .Where(host => host.Type == HostNameType.Ipv4 && host.IPInformation.NetworkAdapter.NetworkAdapterId == networkId).FirstOrDefault();
+                        IPInfoField.Text = hostName.ToString();
+                        await listener.BindEndpointAsync(hostName, App.ServiceName);
+                        CoreApplication.Properties.Add("listener", listener);
+                    }
+                    catch (Exception ex)
+                    {
+                        var msg = SocketError.GetStatus(ex.HResult);
+                        Console.WriteLine();
+                    }
+                }
+            }
+        }
+
+        private async void OnRecieved(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
+        {
+            DataReader reader = new DataReader(args.Socket.InputStream);
+            while (true)
+            {
+                uint length = await reader.LoadAsync(sizeof(uint));
+                if (length != sizeof(uint))
+                    return;
+                uint state = reader.ReadUInt32();
+                if (state == ConnectionState.StateSending)
+                {
+                    DataWriter writer = new DataWriter(args.Socket.OutputStream);
+                    var res = await FileAcceptAync(reader);
+                    if (res == ResponceType.Accept)
+                    {
+                        writer.WriteUInt32(ConnectionState.StateRecieve);
+                    }
+                    else if (res == ResponceType.Deny)
+                    {
+                        writer.WriteUInt32(ConnectionState.StateDeny);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                    await writer.StoreAsync();
+                }
+                if (state == ConnectionState.StateRecieving)
+                {
+                    var res = await RecieveFileAsync(reader);
+                    if (res == ResponceType.Close)
+                        return;
+                }
+
+            }
+        }
+
+        private async Task<ResponceType> RecieveFileAsync(DataReader reader)
+        {
+            var length = await reader.LoadAsync(sizeof(uint));
+            if (length != sizeof(uint)) return ResponceType.Close;
+            var actualContentLength = reader.ReadUInt32();
+            var contentLength = await reader.LoadAsync(actualContentLength);
+            if (actualContentLength != contentLength) return ResponceType.Close;
+            return ResponceType.Accept;
+
+        }
+
+        private async Task<ResponceType> FileAcceptAync(IDataReader reader)
+        {
+            var length = await reader.LoadAsync(sizeof(uint));
+            if (length != sizeof(uint)) return ResponceType.Close;
+            var actualContentLength = reader.ReadUInt32();
+            var contentLength = await reader.LoadAsync(actualContentLength);
+            if (actualContentLength != contentLength) return ResponceType.Close;
+            FileInfo fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(contentLength));
+            var dialog = new MessageDialog($"File {fileInfo.FileName}", "Do you want to recieve");
+            dialog.Commands.Add(new UICommand("Ok"));
+            dialog.Commands.Add(new UICommand("Cancel"));
+            dialog.DefaultCommandIndex = 0;
+            dialog.DefaultCommandIndex = 1;
+            var result = await dialog.ShowAsync();
+            return (int)result.Id == 0 ? ResponceType.Accept : ResponceType.Deny;
+
+        }
+
+        private void OnExit(object sender, object e)
+        {
+            if (CoreApplication.Properties.ContainsKey("listener"))
+            {
+                var listener = (StreamSocketListener)CoreApplication.Properties["listener"];
+                listener.Dispose();
+                CoreApplication.Properties.Remove("listener");
+            }
+        }
+
+        private void OnBackPressed(object sender, BackRequestedEventArgs e)
+        {
+            Frame.GoBack();
+            if (!Frame.CanGoBack)
+            {
+                SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility = AppViewBackButtonVisibility.Collapsed;
+            }
+        }
+
+        private void OnSendClick(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(SendPage));
         }
     }
 }
