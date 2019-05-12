@@ -30,7 +30,8 @@
     <uap:Capability Name="videosLibrary" />
     <uap:Capability Name="picturesLibrary" />
     <uap:Capability Name="musicLibrary" />
+    <uap:Capability Name="documentsLibrary" />
     <uap3:Capability Name="remoteSystem" />
-    <iot:Capability Name="systemManagement" />
+    <uap:Capability Name="userAccountInformation" />
   </Capabilities>
 </Package>

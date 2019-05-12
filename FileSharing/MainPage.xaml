@@ -18,7 +18,23 @@
                 FontSize="24"
                 FontWeight="Bold"
                 Text="FileTranfer" />
-            <Button Click="OnSendClick" Content="Send" />
+            <Button
+                BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}"
+                Click="OnSendClick"
+                Content="Send" />
+            <RelativePanel>
+                <HyperlinkButton
+                    x:Name="PathChangeBtn"
+                    Margin="5,0"
+                    Click="OnPathChangeClick"
+                    Content="Change"
+                    RelativePanel.AlignRightWithPanel="True" />
+                <TextBox
+                    x:Name="SavePathField"
+                    PlaceholderText="Save Directory"
+                    RelativePanel.AlignLeftWithPanel="True"
+                    RelativePanel.LeftOf="PathChangeBtn" />
+            </RelativePanel>
             <TextBlock Text="User IP : " />
             <TextBlock x:Name="IPInfoField" />
         </StackPanel>

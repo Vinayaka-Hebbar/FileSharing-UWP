@@ -58,7 +58,7 @@ namespace FileSharing.ViewModels
 
                     StorageFile file = await StorageFile.GetFileFromPathAsync(FilePath);
                     var info = await file.GetBasicPropertiesAsync();
-                    var fileInfo = Json.Serialize(new FileInfo { FileName = file.DisplayName, Size = info.Size });
+                    var fileInfo = Json.Serialize(new FileInfo { FileName = file.DisplayName, FileType = file.FileType, Size = info.Size });
                     var fileInfoLength = writter.MeasureString(fileInfo);
                     writter.WriteUInt32(fileInfoLength);
                     writter.WriteString(fileInfo);

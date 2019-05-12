@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
 using Windows.Networking;
 using Windows.Networking.Sockets;
+using Windows.Storage;
 using Windows.Storage.Streams;
 using Windows.UI.Core;
 using Windows.UI.Popups;
@@ -21,41 +22,85 @@ namespace FileSharing
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        const string SavePathKey = "SavePath";
+        private readonly ApplicationDataContainer settings;
         public MainPage()
         {
             InitializeComponent();
+            settings = ApplicationData.Current.LocalSettings;
+            LoadSettings();
 
+        }
+
+        private async void LoadSettings()
+        {
+
+            if (!settings.Values.ContainsKey(SavePathKey))
+            {
+                var downloadFolder = await DownloadsFolder.CreateFolderAsync("SharedFiles", CreationCollisionOption.GenerateUniqueName);
+                settings.Values.Add(SavePathKey, downloadFolder.Path);
+            }
+            SavePathField.Text = settings.Values[SavePathKey].ToString();
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            if (e.NavigationMode == NavigationMode.Back)
+            {
+                if (CoreApplication.Properties.TryGetValue("host", out object hostName))
+                {
+                    var currentHost = (HostName)hostName;
+                    IPInfoField.Text = currentHost.CanonicalName;
+
+                }
+            }
             if (e.NavigationMode == NavigationMode.New)
             {
                 SystemNavigationManager.GetForCurrentView().BackRequested += OnBackPressed;
+                Windows.Networking.Connectivity.NetworkInformation.NetworkStatusChanged += OnNetworkChanged;
                 CoreApplication.Exiting += OnExit;
-                HostName hostName;
-                if (!CoreApplication.Properties.ContainsKey("listener"))
-                {
-                    try
-                    {
-                        StreamSocketListener listener = new StreamSocketListener();
-                        listener.Control.KeepAlive = false;
-                        listener.ConnectionReceived += OnRecieved;
-                        var networkId = Windows.Networking.Connectivity.NetworkInformation.GetInternetConnectionProfile().NetworkAdapter.NetworkAdapterId;
+                await CreateListener();
+            }
+        }
 
-                        hostName = Windows.Networking.Connectivity.NetworkInformation.GetHostNames()
-                             .Where(host => host.Type == HostNameType.Ipv4 && host.IPInformation.NetworkAdapter.NetworkAdapterId == networkId).FirstOrDefault();
-                        IPInfoField.Text = hostName.ToString();
-                        await listener.BindEndpointAsync(hostName, App.ServiceName);
-                        CoreApplication.Properties.Add("listener", listener);
-                    }
-                    catch (Exception ex)
-                    {
-                        await new MessageDialog(ex.Message).ShowAsync();
-                    }
+        private async Task CreateListener()
+        {
+            HostName hostName;
+            if (!CoreApplication.Properties.ContainsKey("listener"))
+            {
+                try
+                {
+                    StreamSocketListener listener = new StreamSocketListener();
+                    listener.Control.KeepAlive = false;
+                    listener.ConnectionReceived += OnRecieved;
+                    hostName = LoadIpInfo();
+                    await listener.BindEndpointAsync(hostName, App.ServiceName);
+                    CoreApplication.Properties.Add("listener", listener);
+                    CoreApplication.Properties.Add("host", hostName);
+                }
+                catch (Exception ex)
+                {
+                    await new MessageDialog(ex.Message).ShowAsync();
                 }
             }
+        }
+
+        private async void OnNetworkChanged(object sender)
+        {
+            StopListener();
+            await CreateListener();
+        }
+
+        private HostName LoadIpInfo()
+        {
+            HostName hostName;
+            var networkId = Windows.Networking.Connectivity.NetworkInformation.GetInternetConnectionProfile().NetworkAdapter.NetworkAdapterId;
+
+            hostName = Windows.Networking.Connectivity.NetworkInformation.GetHostNames()
+                 .Where(host => host.Type == HostNameType.Ipv4 && host.IPInformation.NetworkAdapter.NetworkAdapterId == networkId).FirstOrDefault();
+            IPInfoField.Text = hostName.ToString();
+            return hostName;
         }
 
         private async void OnRecieved(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
@@ -118,8 +163,27 @@ namespace FileSharing
             {
                 LogField.Text += $"File {fileInfo.FileName}.{fileInfo.FileType}\n";
             });
+            await SaveRecievedFile(fileInfo, reader.ReadBuffer(actualContentLength));
             return ResponceType.Accept;
 
+        }
+
+        private async Task SaveRecievedFile(FileInfo info, IBuffer buffer)
+        {
+            try
+            {
+                StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(settings.Values[SavePathKey].ToString());
+                StorageFile file = await folder.CreateFileAsync($"{info.FileName}{info.FileType}", CreationCollisionOption.GenerateUniqueName);
+                using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
+                {
+                    await stream.WriteAsync(buffer);
+                    await stream.FlushAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
 
         private async Task<bool> FileAcceptAync(IDataReader reader, Action<ResponceType> action)
@@ -144,6 +208,11 @@ namespace FileSharing
 
         private void OnExit(object sender, object e)
         {
+            StopListener();
+        }
+
+        private static void StopListener()
+        {
             if (CoreApplication.Properties.ContainsKey("listener"))
             {
                 var listener = (StreamSocketListener)CoreApplication.Properties["listener"];
@@ -164,6 +233,18 @@ namespace FileSharing
         private void OnSendClick(object sender, RoutedEventArgs e)
         {
             Frame.Navigate(typeof(SendPage));
+        }
+
+        private async void OnPathChangeClick(object sender, RoutedEventArgs e)
+        {
+            var folderPicker = new Windows.Storage.Pickers.FolderPicker();
+            folderPicker.FileTypeFilter.Add("*");
+            var seletedFolder = await folderPicker.PickSingleFolderAsync();
+            if (seletedFolder != null)
+            {
+                settings.Values[SavePathKey] = seletedFolder.Path;
+                SavePathField.Text = seletedFolder.Path;
+            }
         }
     }
 }
