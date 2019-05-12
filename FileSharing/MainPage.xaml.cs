@@ -105,6 +105,8 @@ namespace FileSharing
             var fileInfoLength = await reader.LoadAsync(sizeof(uint));
             if (fileInfoLength != sizeof(uint)) return ResponceType.Close;
             var fileInfoCount = reader.ReadUInt32();
+            var actualFileInfoCount = await reader.LoadAsync(fileInfoCount);
+            if (fileInfoCount != actualFileInfoCount) return ResponceType.Close;
             var fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(fileInfoCount));
             var length = await reader.LoadAsync(sizeof(uint));
             if (length != sizeof(uint)) return ResponceType.Close;
