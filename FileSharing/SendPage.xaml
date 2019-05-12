@@ -70,12 +70,12 @@
             <Border.Background>
                 <SolidColorBrush Color="{ThemeResource SystemAltMediumLowColor}" />
             </Border.Background>
-            <ProgressRing
-                Width="50"
-                Height="50"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                IsActive="True" />
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressRing
+                    Width="50"
+                    Height="50"
+                    IsActive="True" />
+            </StackPanel>
         </Border>
     </Grid>
 </Page>

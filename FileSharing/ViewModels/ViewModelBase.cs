@@ -4,7 +4,10 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Windows.ApplicationModel.Core;
+using Windows.UI.Core;
 using Windows.UI.Popups;
+using Windows.UI.Xaml;
 
 namespace FileSharing.ViewModels
 {
@@ -22,7 +25,7 @@ namespace FileSharing.ViewModels
             return new Command(action);
         }
 
-        public static ICommand CreateAsyncCommand(Func<object, Task> action)
+        public static ICommand CreateAsyncCommand(Func<Task> action)
         {
             return new AsyncCommand(action);
         }
@@ -73,9 +76,17 @@ namespace FileSharing.ViewModels
             }
         }
 
+        protected async void RunDispatcher(DispatchedHandler action)
+        {
+            await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, action);
+        }
+
         protected async Task NotifyAsync(string message)
         {
-            await new MessageDialog("Somthing wrong.. Please Restart the app and try again").ShowAsync();
+            await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+              {
+                  await new MessageDialog("Somthing wrong.. Please Restart the app and try again").ShowAsync();
+              });
         }
     }
 }

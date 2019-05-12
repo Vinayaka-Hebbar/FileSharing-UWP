@@ -162,7 +162,7 @@ namespace FileSharing
 
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                LogField.Text += $"File {contentInfo.Name}.{contentInfo.Extension}\n";
+                LogField.Text += $"{contentInfo.ContentType} {contentInfo.Name}{contentInfo.Extension}\n";
             });
             switch (contentInfo.ContentType)
             {

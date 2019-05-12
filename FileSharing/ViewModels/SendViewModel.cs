@@ -1,6 +1,7 @@
 ﻿using FileSharing.Models;
 using FileSharing.Utils;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Windows.ApplicationModel.Core;
@@ -12,12 +13,13 @@ namespace FileSharing.ViewModels
 {
     public sealed class SendViewModel : ViewModelBase
     {
-        private string _filePath = "Hello";
+        private string _filePath;
         private string _iPAddress;
         private bool _isSendEnabled;
         private object _selectedContentType = ContentType.Text;
         private string _content;
         private object _language;
+
 
         public SendViewModel()
         {
@@ -25,7 +27,7 @@ namespace FileSharing.ViewModels
             SelectFile = CreateAsyncCommand(OnSelectFile);
         }
 
-        private async Task OnSelectFile(object obj)
+        private async Task OnSelectFile()
         {
             var picker = new FileOpenPicker
             {
@@ -41,21 +43,22 @@ namespace FileSharing.ViewModels
             }
         }
 
-        private async Task OnSend(object obj)
+        private async Task OnSend()
         {
             if (string.IsNullOrEmpty(IPAddress))
             {
                 await NotifyAsync("Destination IP is Empty");
                 return;
             }
+            IsBusy = true;
             var contentType = Enum.Parse<ContentType>(_selectedContentType.ToString());
             if (CoreApplication.Properties.ContainsKey("listener"))
             {
+                Windows.Networking.Sockets.StreamSocket socket = null;
                 try
                 {
                     var host = new Windows.Networking.HostName(IPAddress);
-                    IsBusy = true;
-                    var socket = new Windows.Networking.Sockets.StreamSocket();
+                    socket = new Windows.Networking.Sockets.StreamSocket();
                     socket.Control.KeepAlive = false;
                     await socket.ConnectAsync(host, App.ServiceName);
                     switch (contentType)
@@ -71,9 +74,6 @@ namespace FileSharing.ViewModels
                             await SendContentAsync(socket.InputStream, socket.OutputStream, contentType);
                             break;
                     }
-
-                    socket.Dispose();
-                    IsBusy = false;
                 }
                 catch (Exception ex)
                 {
@@ -81,6 +81,7 @@ namespace FileSharing.ViewModels
                 }
                 finally
                 {
+                    socket?.Dispose();
                     IsBusy = false;
                 }
             }
