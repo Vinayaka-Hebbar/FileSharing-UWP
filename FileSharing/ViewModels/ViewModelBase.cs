@@ -85,7 +85,7 @@ namespace FileSharing.ViewModels
         {
             await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
               {
-                  await new MessageDialog("Somthing wrong.. Please Restart the app and try again").ShowAsync();
+                  await new MessageDialog(message).ShowAsync();
               });
         }
     }
