@@ -3,16 +3,19 @@
 namespace FileSharing.Models
 {
     [DataContract]
-    public struct FileInfo
+    public struct ContentInfo
     {
         [DataMember]
-        public string FileName { get; set; }
+        public string Name { get; set; }
 
         [DataMember]
         public ulong Size { get; set; }
 
         [DataMember]
-        public string FileType { get; set; }
+        public string Extension { get; set; }
+
+        [DataMember]
+        public ContentType ContentType { get; set; }
 
     }
 }

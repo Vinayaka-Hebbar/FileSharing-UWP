@@ -2,7 +2,7 @@
 using System.Runtime.Serialization.Json;
 using System.Text;
 
-namespace FileSharing
+namespace FileSharing.Utils
 {
     public static class Json
     {

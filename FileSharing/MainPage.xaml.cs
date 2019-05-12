@@ -1,4 +1,5 @@
 ﻿using FileSharing.Models;
+using FileSharing.Utils;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -149,10 +150,10 @@ namespace FileSharing
         {
             var fileInfoLength = await reader.LoadAsync(sizeof(uint));
             if (fileInfoLength != sizeof(uint)) return ResponceType.Close;
-            var fileInfoCount = reader.ReadUInt32();
-            var actualFileInfoCount = await reader.LoadAsync(fileInfoCount);
-            if (fileInfoCount != actualFileInfoCount) return ResponceType.Close;
-            var fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(fileInfoCount));
+            var contentInfoCount = reader.ReadUInt32();
+            var actualContentInfoCount = await reader.LoadAsync(contentInfoCount);
+            if (contentInfoCount != actualContentInfoCount) return ResponceType.Close;
+            var contentInfo = Json.Deserialize<ContentInfo>(reader.ReadString(contentInfoCount));
             var length = await reader.LoadAsync(sizeof(uint));
             if (length != sizeof(uint)) return ResponceType.Close;
             var actualContentLength = reader.ReadUInt32();
@@ -161,19 +162,37 @@ namespace FileSharing
 
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                LogField.Text += $"File {fileInfo.FileName}.{fileInfo.FileType}\n";
+                LogField.Text += $"File {contentInfo.Name}.{contentInfo.Extension}\n";
             });
-            await SaveRecievedFile(fileInfo, reader.ReadBuffer(actualContentLength));
+            switch (contentInfo.ContentType)
+            {
+                case ContentType.File:
+                    await SaveRecievedFile(contentInfo, reader.ReadBuffer(actualContentLength));
+                    break;
+                case ContentType.Code:
+                case ContentType.Text:
+                default:
+                    DisplayContent(reader, contentInfo, actualContentLength);
+                    break;
+            }
             return ResponceType.Accept;
 
         }
 
-        private async Task SaveRecievedFile(FileInfo info, IBuffer buffer)
+        private async void DisplayContent(IDataReader reader, ContentInfo info, uint size)
+        {
+            string content = reader.ReadString(size);
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                LogField.Text += content + "\n";
+            });
+        }
+
+        private async Task SaveRecievedFile(ContentInfo info, IBuffer buffer)
         {
             try
             {
-                StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(settings.Values[SavePathKey].ToString());
-                StorageFile file = await folder.CreateFileAsync($"{info.FileName}{info.FileType}", CreationCollisionOption.GenerateUniqueName);
+                StorageFile file = await DownloadsFolder.CreateFileAsync($"{info.Name}{info.Extension}", CreationCollisionOption.GenerateUniqueName);
                 using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
                 {
                     await stream.WriteAsync(buffer);
@@ -193,10 +212,10 @@ namespace FileSharing
             var actualContentLength = reader.ReadUInt32();
             var contentLength = await reader.LoadAsync(actualContentLength);
             if (actualContentLength != contentLength) return true;
-            FileInfo fileInfo = Json.Deserialize<FileInfo>(reader.ReadString(contentLength));
+            ContentInfo fileInfo = Json.Deserialize<ContentInfo>(reader.ReadString(contentLength));
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
              {
-                 var dialog = new MessageDialog($"File {fileInfo.FileName}", "Do you want to recieve");
+                 var dialog = new MessageDialog($"{fileInfo.ContentType} {fileInfo.Name}", "Do you want to recieve");
                  dialog.Commands.Add(new UICommand("Ok", (c) => { action(ResponceType.Accept); }));
                  dialog.Commands.Add(new UICommand("Cancel", (c) => { action(ResponceType.Deny); }));
                  dialog.DefaultCommandIndex = 0;

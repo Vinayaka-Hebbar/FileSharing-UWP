@@ -5,8 +5,45 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:FileSharing"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="Page"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     mc:Ignorable="d">
+    <Page.Resources>
+        <DataTemplate x:Key="TemplateFile">
+            <RelativePanel>
+                <Button
+                    x:Name="SelectFileBtn"
+                    Command="{Binding ElementName=ContentPanel, Path=DataContext.SelectFile}"
+                    Content="Select File"
+                    RelativePanel.AlignRightWithPanel="True" />
+                <TextBox
+                    IsReadOnly="True"
+                    PlaceholderText="Empty"
+                    RelativePanel.AlignBottomWithPanel="True"
+                    RelativePanel.AlignLeftWithPanel="True"
+                    RelativePanel.AlignTopWithPanel="True"
+                    RelativePanel.LeftOf="SelectFileBtn"
+                    Text="{Binding ElementName=ContentPanel, Path=DataContext.FilePath, Mode=OneWay}" />
+            </RelativePanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TemplateContent">
+            <TextBox AcceptsReturn="True" Text="{Binding ElementName=ContentPanel, Path=DataContext.Content, Mode=TwoWay}" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="TemplateCode">
+            <StackPanel Spacing="5">
+                <ComboBox ItemsSource="{Binding ElementName=ContentPanel, Path=DataContext.HighlightLanguages}" SelectedItem="{Binding ElementName=ContentPanel, Path=DataContext.HighlightLanguage, Mode=TwoWay}" />
+                <TextBox AcceptsReturn="True" Text="{Binding ElementName=ContentPanel, Path=DataContext.Content, Mode=TwoWay}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <local:UIContentTemplateSelector
+            x:Key="ContentTemplateSelector"
+            CodeTemplate="{StaticResource TemplateCode}"
+            ContentTemplate="{StaticResource TemplateContent}"
+            FileTemplate="{StaticResource TemplateFile}" />
+    </Page.Resources>
 
     <Grid>
         <StackPanel Margin="5" Spacing="5">
@@ -15,21 +52,30 @@
                 FontWeight="SemiBold"
                 Text="Send Files" />
             <TextBox PlaceholderText="Destination Ip" Text="{Binding IPAddress, Mode=TwoWay}" />
-            <RelativePanel>
-                <Button
-                    x:Name="SelectFileBtn"
-                    Command="{Binding SelectFile}"
-                    Content="Select File"
-                    RelativePanel.AlignRightWithPanel="True" />
-                <TextBox
-                    IsReadOnly="True"
-                    RelativePanel.AlignBottomWithPanel="True"
-                    RelativePanel.AlignLeftWithPanel="True"
-                    RelativePanel.AlignTopWithPanel="True"
-                    RelativePanel.LeftOf="SelectFileBtn"
-                    Text="{Binding FilePath, Mode=OneWay}" />
-            </RelativePanel>
+            <ComboBox
+                x:Name="ContentTypeComboBox"
+                Header="ContentType"
+                ItemsSource="{Binding ContentTypes}"
+                SelectedItem="{Binding SelectedContentType, Mode=TwoWay}" />
+            <ScrollViewer MaxHeight="400">
+                <ContentControl
+                    x:Name="ContentPanel"
+                    HorizontalContentAlignment="Stretch"
+                    Content="{Binding ElementName=ContentTypeComboBox, Path=SelectedItem}"
+                    ContentTemplateSelector="{StaticResource ContentTemplateSelector}" />
+            </ScrollViewer>
             <Button Command="{Binding Send}" Content="Send" />
         </StackPanel>
+        <Border Visibility="{Binding IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border.Background>
+                <SolidColorBrush Color="{ThemeResource SystemAltMediumLowColor}" />
+            </Border.Background>
+            <ProgressRing
+                Width="50"
+                Height="50"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsActive="True" />
+        </Border>
     </Grid>
 </Page>
