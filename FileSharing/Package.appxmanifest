@@ -35,6 +35,5 @@
     <uap:Capability Name="documentsLibrary" />
     <uap3:Capability Name="remoteSystem" />
     <uap:Capability Name="userAccountInformation" />
-    <rescap:Capability Name="broadFileSystemAccess" />
   </Capabilities>
 </Package>

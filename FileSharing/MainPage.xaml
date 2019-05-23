@@ -39,7 +39,7 @@
             <TextBlock x:Name="IPInfoField" />
         </StackPanel>
         <ScrollViewer Grid.Row="1">
-            <TextBlock x:Name="LogField" />
+            <TextBlock x:Name="LogField" IsTextSelectionEnabled="True" />
         </ScrollViewer>
     </Grid>
 </Page>
